@@ -24,7 +24,7 @@
       position:sticky; top:0; z-index:10; backdrop-filter:saturate(1.2) blur(8px);
       background:rgba(15,17,21,.7); border-bottom:1px solid rgba(255,255,255,.06);
     }
-    .container{max-width:900px;margin:0 auto;padding:16px}
+    .container{max-width:980px;margin:0 auto;padding:16px}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
     .card{
       background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:16px;
@@ -43,7 +43,7 @@
     .ok{background:var(--ok); color:#0b1a10}
     .danger{background:#2a1416; border-color:#702c31; color:#ffb3b7}
     .grid{display:grid; gap:12px}
-    @media (min-width:720px){ .grid{grid-template-columns:1fr 1fr} }
+    @media (min-width:880px){ .grid{grid-template-columns:1fr 1fr} }
     .habit{
       display:flex; align-items:center; gap:12px; padding:12px; border-radius:12px; background:#10131b; border:1px solid rgba(255,255,255,.06);
     }
@@ -60,9 +60,9 @@
     .footer{opacity:.7; font-size:12px; text-align:center; padding:24px}
     input[type="date"]{background:#1e2230;border:1px solid rgba(255,255,255,.1);color:var(--text);padding:8px;border-radius:10px}
     input[type="text"], input[type="number"]{
-      width:100%; background:#0e1119; border:1px solid rgba(255,255,255,.1); color:var(--text); padding:10px 12px; border-radius:10px;
+      width:100%; background:#0e1119; border:1px solid rgba(255,255,255,.1); color:#fff; padding:10px 12px; border-radius:10px;
     }
-    dialog{border:none; border-radius:16px; padding:0; background:#0e1016; color:var(--text); width:min(680px,92vw)}
+    dialog{border:none; border-radius:16px; padding:0; background:#0e1016; color:var(--text); width:min(720px,92vw)}
     dialog::backdrop{background:rgba(0,0,0,.5)}
     .modal-header{padding:16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:12px;align-items:center}
     .modal-body{padding:16px}
@@ -72,6 +72,47 @@
     .bar{flex:1; background:linear-gradient(180deg, rgba(124,92,255,.85), rgba(124,92,255,.45)); border-radius:8px 8px 0 0; min-width:12px}
     .bar-label{font-size:12px; text-align:center; color:#cbd2e2; margin-top:6px}
     .muted{color:var(--muted)}
+
+    /* Battle UI */
+    .battle{
+      display:flex; gap:16px; align-items:center; border:1px dashed rgba(255,255,255,.12); padding:16px; border-radius:16px; background:#0f1220;
+      position:relative; overflow:hidden;
+    }
+    .enemy{
+      width:96px; height:96px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:48px;
+      background: #0c0f19; border:1px solid rgba(255,255,255,.08); box-shadow: inset 0 0 0 2px rgba(124,92,255,.15);
+      transition: transform .08s ease;
+    }
+    .enemy.hit{ transform: translateY(-4px) scale(1.03); }
+    .hpbar{flex:1}
+    .hpwrap{height:14px; background:#1a1f30; border-radius:999px; border:1px solid rgba(255,255,255,.12); overflow:hidden}
+    .hpfill{height:100%; width:100%; background:linear-gradient(90deg, #ff747b, #ff444d);}
+    .hplabel{font-size:12px; margin-top:6px; color:#cbd2e2}
+    .victory{display:none; font-weight:800}
+    .victory.show{display:inline-block}
+    .spark{
+      position:absolute; width:6px; height:6px; background:#ffd166; border-radius:50%; pointer-events:none; opacity:.9;
+      animation: fly .6s ease-out forwards;
+    }
+    @keyframes fly{ to{ transform: translate(var(--dx), var(--dy)); opacity:0 } }
+
+    /* Avatar UI */
+    .avatar{
+      display:flex; gap:12px; align-items:center; border:1px solid rgba(255,255,255,.08); padding:12px; border-radius:14px; background:#0e1220;
+    }
+    .me{
+      width:64px;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:36px;background:#0b0f19;border:1px solid rgba(255,255,255,.08)
+    }
+    .gear{display:flex; gap:6px; flex-wrap:wrap}
+    .badge{font-size:14px; padding:6px 8px; border-radius:999px; background:#13182a; border:1px solid rgba(255,255,255,.08)}
+
+    /* Trophies */
+    .trophies{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px}
+    .trophy{
+      border:1px solid rgba(255,255,255,.08); background:#0d1120; border-radius:12px; padding:10px; text-align:center
+    }
+    .trophy .big{font-size:28px}
+    .trophy .name{font-size:12px;color:#c7ccda;margin-top:4px}
   </style>
 </head>
 <body>
@@ -97,9 +138,39 @@
       <label class="btn" for="importFile">Import</label>
       <input id="importFile" type="file" accept="application/json" style="display:none">
       <button class="btn" id="settingsBtn">Settings</button>
+      <button class="btn" id="openLogBtn">Boss Log</button>
     </div>
     <p class="sub" id="streakInfo">Streak: 0 days · Last 7d avg: 0</p>
-    <h3 class="section-title">Core Habits</h3>
+
+    <!-- Avatar -->
+    <div class="avatar" style="margin-bottom:12px">
+      <div class="me" id="meFace" title="Your avatar">🧍</div>
+      <div>
+        <div class="section-title" style="margin:0">Avatar</div>
+        <div class="gear" id="gearRow"></div>
+        <div class="sub" id="titleRow"></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="pill" id="streakPill">Streak 0</div>
+    </div>
+
+    <!-- Battle Minigame -->
+    <h3 class="section-title">Battle</h3>
+    <div class="battle" id="battleBox" aria-live="polite">
+      <div class="enemy" id="enemyFace" title="Defeat today's foe by completing core habits">😀</div>
+      <div class="hpbar">
+        <div class="hpwrap"><div class="hpfill" id="hpFill"></div></div>
+        <div class="hplabel">
+          <span id="hpText">HP 0/0</span> · <span class="muted">Each core habit = 1 dmg</span>
+          <span class="victory" id="victoryTag">— VICTORY!</span>
+          <span class="pill" id="rareTag" style="display:none;margin-left:8px">Rare Boss</span>
+        </div>
+        <div class="sub" id="enemyName">Today’s foe: ???</div>
+      </div>
+      <button class="btn" id="rerollEnemy" title="Pick a different foe for today">🎲 Reroll</button>
+    </div>
+
+    <h3 class="section-title" style="margin-top:14px">Core Habits</h3>
     <div id="coreList" class="grid"></div>
     <h3 class="section-title" style="margin-top:14px">Extra Points</h3>
     <div id="extraList" class="grid"></div>
@@ -126,6 +197,19 @@
     </div>
   </section>
 </main>
+
+<!-- Boss Log Modal -->
+<dialog id="logModal">
+  <div class="modal-header">
+    <h3 style="margin:0">Boss Log</h3>
+    <div class="spacer"></div>
+    <button id="closeLog">Close</button>
+  </div>
+  <div class="modal-body">
+    <div class="trophies" id="trophyGrid"></div>
+    <p class="sub" id="logMeta"></p>
+  </div>
+</dialog>
 
 <dialog id="settingsModal">
   <div class="modal-header">
@@ -197,14 +281,12 @@ const $$ = sel => Array.from(document.querySelectorAll(sel));
 const todayISO = () => {
   const s = load().settings.dayStart || 0;
   const now = new Date();
-  if (now.getHours() < s){ // treat hours before start as previous day
-    now.setDate(now.getDate()-1);
-  }
+  if (now.getHours() < s){ now.setDate(now.getDate()-1); }
   return now.toISOString().slice(0,10);
 };
 
 const DEFAULT = {
-  settings:{ dayStart:0, version:1 },
+  settings:{ dayStart:0, version:3, enemyRerolls:{}, trophies:[], avatar:{base:"🧍", titles:[]} },
   habits:[
     // Core (9)
     {id:"penis", emoji:"🧴", name:"Penis cream", points:1, category:"core", active:true},
@@ -224,7 +306,7 @@ const DEFAULT = {
     {id:"novape", emoji:"🚭", name:"No vaping all day", points:1, category:"extra", active:true},
     {id:"noporn", emoji:"🚫", name:"No porn all day", points:1, category:"extra", active:true}
   ],
-  entries:{} // date -> { done: {habitId: true/false} }
+  entries:{}
 };
 
 function load(){
@@ -232,45 +314,100 @@ function load(){
     const raw = localStorage.getItem("dsg_data");
     if(!raw) return JSON.parse(JSON.stringify(DEFAULT));
     const obj = JSON.parse(raw);
-    // migrate defaults if missing
+
+    // migrations
     if(!obj.settings) obj.settings = {dayStart:0, version:1};
     if(!obj.habits) obj.habits = DEFAULT.habits;
     if(!obj.entries) obj.entries = {};
+
+    if(obj.settings.version < 2){
+      obj.settings.enemyRerolls = {};
+      obj.settings.version = 2;
+    }
+    if(obj.settings.version < 3){
+      obj.settings.trophies = [];
+      obj.settings.avatar = {base:"🧍", titles:[]};
+      obj.settings.version = 3;
+    }
     return obj;
-  }catch(e){
-    return JSON.parse(JSON.stringify(DEFAULT));
-  }
+  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
 }
-function save(data){
-  localStorage.setItem("dsg_data", JSON.stringify(data));
+function save(data){ localStorage.setItem("dsg_data", JSON.stringify(data)); }
+
+// --- Utility ---
+function hashStr(str){
+  let h = 2166136261;
+  for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h);
+}
+function pickDailyEnemyEmoji(date, habits, rerollCount=0){
+  const pool = habits.filter(h=>h.active && h.emoji && h.emoji.trim()).map(h=>({id:h.id, emoji:h.emoji, name:h.name}));
+  if(pool.length===0){ return {emoji:"👾", name:"Glitchling", rare:false}; }
+  const seed = hashStr(date) + rerollCount*1337;
+  const idx = seed % pool.length;
+  // Rare boss: 1-in-20 chance (cosmetic)
+  const rare = (seed % 20) === 0;
+  const pick = pool[idx];
+  const named = nameEnemy(pick.emoji, pick.name, rare, seed);
+  return { emoji: pick.emoji, name: named, rare };
+}
+function nameEnemy(emoji, baseName, rare, seed){
+  const prefixes = ["Sir","Duke","Captain","Agent","Doctor","Chief","Count","Baron","Warden","Shade"];
+  const suffixes = ["Crusher","Maw","Fang","Claw","Wisp","Bite","Hex","Vex","Gloom","Blaze"];
+  const p = prefixes[seed % prefixes.length];
+  const s = suffixes[(seed>>4) % suffixes.length];
+  const star = rare ? "★ " : "";
+  // e.g., "★ Sir 🪥 Fang"
+  return `${star}${p} ${emoji} ${s}`;
 }
 
+function todayEntry(data, date){
+  data.entries[date] = data.entries[date] || {done:{}, meta:{}};
+  return data.entries[date];
+}
+
+// --- Rendering ---
 function render(){
   const data = load();
   const date = $("#datePicker").value || todayISO();
-  const entry = data.entries[date] || {done:{}};
+  const entry = todayEntry(data, date);
   const core = data.habits.filter(h=>h.category==="core" && h.active);
   const extra = data.habits.filter(h=>h.category==="extra" && h.active);
-  const renderList = (list, el)=>{
-    el.innerHTML = "";
-    list.forEach(h=>{
-      const done = !!entry.done[h.id];
-      const div = document.createElement("div");
-      div.className = "habit";
-      div.innerHTML = `
-        <div class="emoji">${h.emoji}</div>
-        <div class="name">${h.name}</div>
-        <span class="tag">+${h.points}</span>
-        <div class="spacer"></div>
-        <button class="btn ${done?'ok':''}" data-toggle="${h.id}">${done?'Done':'Mark'}</button>
-      `;
-      el.appendChild(div);
-    });
-  };
-  renderList(core, $("#coreList"));
-  renderList(extra, $("#extraList"));
 
-  // detail table
+  // Avatar & streak
+  const {streak, avg} = computeStats(data);
+  $("#streakInfo").textContent = `Streak: ${streak} days · Last 7d avg: ${avg.toFixed(1)}`;
+  $("#streakPill").textContent = `Streak ${streak}`;
+  renderAvatar(streak);
+
+  // Battle
+  const rerolls = data.settings.enemyRerolls[date] || 0;
+  const foe = pickDailyEnemyEmoji(date, data.habits, rerolls);
+  $("#enemyFace").textContent = foe.emoji;
+  $("#enemyName").textContent = `Today’s foe: ${foe.name}`;
+  $("#rareTag").style.display = foe.rare ? "inline-flex" : "none";
+
+  const maxHP = core.reduce((a,b)=>a+b.points, 0); // core points total (usually 9)
+  const damage = core.reduce((acc,h)=> acc + ((entry.done && entry.done[h.id]) ? h.points : 0), 0);
+  const hpLeft = Math.max(0, maxHP - damage);
+  const pct = maxHP ? Math.round((hpLeft/maxHP)*100) : 0;
+  $("#hpFill").style.width = (100-pct) + "%";
+  $("#hpText").textContent = `HP ${hpLeft}/${maxHP}`;
+  $("#victoryTag").classList.toggle("show", hpLeft===0);
+  $("#enemyFace").classList.toggle("hit", false);
+
+  // mark victory in trophies if not already saved
+  if(hpLeft===0 && !entry.meta.trophySaved){
+    saveTrophy(data, date, foe, damage + extraDamage(data, entry));
+    entry.meta.trophySaved = true;
+    save(data);
+  }
+
+  // Habit lists
+  renderList(core, $("#coreList"), entry);
+  renderList(extra, $("#extraList"), entry);
+
+  // detail & score
   const all = [...core, ...extra];
   const tbody = $("#detailTable");
   tbody.innerHTML = "";
@@ -283,19 +420,73 @@ function render(){
     tr.innerHTML = `<td>${h.emoji} ${h.name}</td><td>${h.category}</td><td>${h.points}</td><td>${done?'✅':'—'}</td>`;
     tbody.appendChild(tr);
   });
-  // compute score with inactive habits excluded from max
   $("#scoreToday").textContent = `${total} / ${max}`;
 
-  // streak + last 7 avg
-  const {streak, avg} = computeStats(data);
-  $("#streakInfo").textContent = `Streak: ${streak} days · Last 7d avg: ${avg.toFixed(1)}`;
-
-  // weekly chart
   renderChart(data);
 }
 
+function extraDamage(data, entry){
+  // room for future critical hits; for now 0
+  return 0;
+}
+
+function renderAvatar(streak){
+  const me = $("#meFace");
+  // basic base avatar
+  me.textContent = "🧍";
+  const gear = [];
+  if(streak >= 3)  gear.push("🗡 Wooden Sword");
+  if(streak >= 7)  gear.push("🛡 Buckler");
+  if(streak >= 14) gear.push("🪖 Helmet");
+  if(streak >= 21) gear.push("🧥 Cloak");
+  if(streak >= 30) gear.push("👑 Crown");
+
+  const gearRow = $("#gearRow");
+  gearRow.innerHTML = "";
+  gear.forEach(g=>{
+    const el = document.createElement("div");
+    el.className = "badge";
+    el.textContent = g;
+    gearRow.appendChild(el);
+  });
+
+  // title line
+  const title = (streak>=30) ? "Champion of Consistency" :
+                (streak>=21) ? "Relentless" :
+                (streak>=14) ? "Disciplined" :
+                (streak>=7)  ? "Steady" :
+                (streak>=3)  ? "Beginning Momentum" :
+                               "New Adventurer";
+  $("#titleRow").textContent = title;
+}
+
+function renderList(list, el, entry){
+  el.innerHTML = "";
+  list.forEach(h=>{
+    const done = !!entry.done[h.id];
+    const div = document.createElement("div");
+    div.className = "habit";
+    div.innerHTML = `
+      <div class="emoji">${h.emoji}</div>
+      <div class="name">${h.name}</div>
+      <span class="tag">+${h.points}</span>
+      <div class="spacer"></div>
+      <button class="btn ${done?'ok':''}" data-toggle="${h.id}" data-category="${h.category}">${done?'Done':'Mark'}</button>
+    `;
+    el.appendChild(div);
+  });
+}
+
+function saveTrophy(data, date, foe, totalScore){
+  data.settings.trophies = data.settings.trophies || [];
+  const exists = data.settings.trophies.some(t=>t.date===date);
+  if(exists) return;
+  data.settings.trophies.push({
+    date, enemyEmoji: foe.emoji, enemyName: foe.name, rare: !!fo.rare, score: totalScore
+  });
+}
+
 function computeStats(data){
-  // streak counts consecutive days with any core completion >= 1
   let streak=0;
   const today = new Date($("#datePicker").value || todayISO());
   for(let i=0;i<365;i++){
@@ -307,7 +498,6 @@ function computeStats(data){
     const anyCore = coreIds.some(id=>entry.done && entry.done[id]);
     if(anyCore) streak++; else break;
   }
-  // last 7d avg total
   let sum=0, count=0;
   for(let i=0;i<7;i++){
     const d = new Date(); d.setDate(d.getDate()-i);
@@ -337,7 +527,6 @@ function renderChart(data){
       const h = data.habits.find(x=>x.id===id);
       return acc + (h?h.points:0);
     },0) : 0;
-    // compute max for that day based on active habits
     const max = data.habits.filter(h=>h.active).reduce((a,b)=>a+b.points,0);
     return {key, label:d.toLocaleDateString(undefined,{weekday:'short'}), total, max};
   });
@@ -357,27 +546,74 @@ function renderChart(data){
   });
 }
 
-function toggleHabit(id){
+function toggleHabit(id, category){
   const data = load();
   const date = $("#datePicker").value || todayISO();
-  data.entries[date] = data.entries[date] || {done:{}};
-  data.entries[date].done[id] = !data.entries[date].done[id];
+  const entry = todayEntry(data, date);
+  const before = !!entry.done[id];
+  entry.done[id] = !before;
   save(data);
+  if(!before && category === "core"){ hitEnemy(); }
   render();
 }
 
-function setup(){
-  // date picker default to today in user's locale
-  $("#datePicker").value = todayISO();
-  $("#todayBtn").addEventListener("click", ()=>{
-    $("#datePicker").value = todayISO(); render();
-  });
-  $("#datePicker").addEventListener("change", render);
+function hitEnemy(){
+  const face = $("#enemyFace");
+  face.classList.add("hit");
+  const box = $("#battleBox");
+  for(let i=0;i<12;i++){
+    const s = document.createElement("div");
+    s.className = "spark";
+    const dx = (Math.random()*140-70) + "px";
+    const dy = (Math.random()*-100-40) + "px";
+    s.style.setProperty("--dx", dx);
+    s.style.setProperty("--dy", dy);
+    s.style.left = (60 + Math.random()*30) + "px";
+    s.style.top = (20 + Math.random()*60) + "px";
+    box.appendChild(s);
+    setTimeout(()=>s.remove(), 650);
+  }
+  setTimeout(()=> face.classList.remove("hit"), 120);
+}
 
-  // mark buttons
+function openBossLog(){
+  const data = load();
+  const grid = $("#trophyGrid");
+  grid.innerHTML = "";
+  const trophies = (data.settings.trophies || []).slice().reverse();
+  if(trophies.length===0){
+    grid.innerHTML = "<div class='sub'>No victories logged yet — defeat today's foe (complete core) to earn your first trophy.</div>";
+  }else{
+    trophies.forEach(t=>{
+      const d = new Date(t.date+"T12:00:00");
+      const div = document.createElement("div");
+      div.className = "trophy";
+      div.innerHTML = `
+        <div class="big">${t.enemyEmoji}</div>
+        <div class="name">${t.enemyName}</div>
+        <div class="sub">${d.toLocaleDateString()} · Score ${t.score}</div>
+        ${t.rare?'<div class="badge" style="margin-top:6px">Rare</div>':''}
+      `;
+      grid.appendChild(div);
+    });
+  }
+  $("#logMeta").textContent = `${trophies.length} total victories`;
+  $("#logModal").showModal();
+}
+
+function setup(){
+  $("#datePicker").value = todayISO();
+  $("#todayBtn").addEventListener("click", ()=>{ $("#datePicker").value = todayISO(); render(); });
+  $("#datePicker").addEventListener("change", render);
+  $("#openLogBtn").addEventListener("click", openBossLog);
+  $("#closeLog").addEventListener("click", ()=> $("#logModal").close());
+
   document.body.addEventListener("click", e=>{
     const id = e.target && e.target.getAttribute("data-toggle");
-    if(id){ toggleHabit(id); }
+    if(id){
+      const cat = e.target.getAttribute("data-category") || "core";
+      toggleHabit(id, cat);
+    }
   });
 
   // export/import
@@ -432,15 +668,16 @@ function setup(){
     save(data); render();
   });
 
-  // habit modal buttons
-  $("#closeHabit").addEventListener("click", ()=> $("#habitModal").close());
-  $("#saveHabit").addEventListener("click", saveHabitFromEditor);
-  $("#deleteHabit").addEventListener("click", deleteHabitFromEditor);
+  // reroll enemy
+  $("#rerollEnemy").addEventListener("click", ()=>{
+    const data = load();
+    const date = $("#datePicker").value || todayISO();
+    data.settings.enemyRerolls[date] = (data.settings.enemyRerolls[date] || 0) + 1;
+    save(data); render();
+  });
 
-  // service worker
-  if("serviceWorker" in navigator){
-    navigator.serviceWorker.register("sw.js");
-  }
+  // PWA
+  if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js"); }
 
   render();
 }
@@ -487,7 +724,7 @@ function openHabitEditor(id){
   $("#hPoints").value = h.points || 1;
   $("#hCategory").value = h.category || "core";
   $("#hActive").checked = h.active !== false;
-  modal.showModal();
+  $("#habitModal").showModal();
 }
 
 function saveHabitFromEditor(){
@@ -501,11 +738,8 @@ function saveHabitFromEditor(){
   const data = load();
   if(editingId){
     const h = data.habits.find(x=>x.id===editingId);
-    if(h){
-      h.emoji = emoji; h.name = name; h.points = points; h.category = category; h.active = active;
-    }
+    if(h){ h.emoji = emoji; h.name = name; h.points = points; h.category = category; h.active = active; }
   }else{
-    // generate id
     const id = (name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0,24) || ("habit-"+Date.now()));
     data.habits.push({id, emoji, name, points, category, active});
   }
@@ -519,7 +753,6 @@ function deleteHabitFromEditor(){
   if(confirm("Delete this habit?")){
     const data = load();
     data.habits = data.habits.filter(x=>x.id!==editingId);
-    // also remove completions
     Object.keys(data.entries).forEach(date=>{
       if(data.entries[date].done) delete data.entries[date].done[editingId];
     });
