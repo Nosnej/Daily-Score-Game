@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Daily Score Game</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#111111">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <style>
+    :root{
+      --bg:#0f1115;--card:#151821;--muted:#9aa3b2;--text:#e6eaf2;--accent:#7c5cff;--ok:#35c759;--warn:#ffcc00;--danger:#ff4d4f;
+      --ring:0 0 0 3px rgba(124,92,255,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:linear-gradient(180deg,#0c0e13,#0f1115 35%);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    }
+    header{
+      position:sticky; top:0; z-index:10; backdrop-filter:saturate(1.2) blur(8px);
+      background:rgba(15,17,21,.7); border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .container{max-width:900px;margin:0 auto;padding:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .card{
+      background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand h1{font-size:20px;margin:0}
+    .sub{color:var(--muted); font-size:13px}
+    button, .btn{
+      appearance:none; border:none; border-radius:12px; padding:10px 14px; background:#1e2230; color:var(--text);
+      cursor:pointer; font-weight:600; transition:.2s ease; border:1px solid rgba(255,255,255,.08);
+    }
+    button:hover,.btn:hover{transform:translateY(-1px);}
+    button:focus-visible{outline:none; box-shadow:var(--ring)}
+    .accent{background:var(--accent)}
+    .ok{background:var(--ok); color:#0b1a10}
+    .danger{background:#2a1416; border-color:#702c31; color:#ffb3b7}
+    .grid{display:grid; gap:12px}
+    @media (min-width:720px){ .grid{grid-template-columns:1fr 1fr} }
+    .habit{
+      display:flex; align-items:center; gap:12px; padding:12px; border-radius:12px; background:#10131b; border:1px solid rgba(255,255,255,.06);
+    }
+    .habit .emoji{font-size:22px}
+    .habit .name{font-weight:600}
+    .tag{font-size:12px; color:#c7cbda; background:#1b1f2b; padding:2px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.08)}
+    .spacer{flex:1}
+    .score{
+      font-variant-numeric: tabular-nums; font-weight:800; font-size:28px; letter-spacing:.5px;
+    }
+    .pill{display:inline-flex;align-items:center;gap:8px;background:#141824;border:1px solid rgba(255,255,255,.08);
+      padding:8px 12px;border-radius:999px;font-size:13px;color:#cfd5e6}
+    .section-title{margin:0 0 8px 0; font-size:14px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase}
+    .footer{opacity:.7; font-size:12px; text-align:center; padding:24px}
+    input[type="date"]{background:#1e2230;border:1px solid rgba(255,255,255,.1);color:var(--text);padding:8px;border-radius:10px}
+    input[type="text"], input[type="number"]{
+      width:100%; background:#0e1119; border:1px solid rgba(255,255,255,.1); color:var(--text); padding:10px 12px; border-radius:10px;
+    }
+    dialog{border:none; border-radius:16px; padding:0; background:#0e1016; color:var(--text); width:min(680px,92vw)}
+    dialog::backdrop{background:rgba(0,0,0,.5)}
+    .modal-header{padding:16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:12px;align-items:center}
+    .modal-body{padding:16px}
+    table{width:100%; border-collapse:collapse}
+    th,td{padding:8px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left; font-size:14px}
+    .chart{display:flex; gap:8px; align-items:flex-end; height:120px; padding:8px; background:#0c0f17; border:1px solid rgba(255,255,255,.06); border-radius:12px}
+    .bar{flex:1; background:linear-gradient(180deg, rgba(124,92,255,.85), rgba(124,92,255,.45)); border-radius:8px 8px 0 0; min-width:12px}
+    .bar-label{font-size:12px; text-align:center; color:#cbd2e2; margin-top:6px}
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+<header>
+  <div class="container row">
+    <div class="brand">
+      <img src="icon.svg" alt="" width="28" height="28">
+      <h1>Daily Score Game</h1>
+    </div>
+    <div class="spacer"></div>
+    <div class="pill" title="Install this app from your browser menu for offline use">PWA Ready · Offline</div>
+  </div>
+</header>
+
+<main class="container grid" id="app">
+  <section class="card">
+    <div class="row" style="align-items:center">
+      <div class="score" id="scoreToday">0 / 15</div>
+      <div class="spacer"></div>
+      <input type="date" id="datePicker">
+      <button id="todayBtn">Today</button>
+      <button class="btn" id="exportBtn">Export</button>
+      <label class="btn" for="importFile">Import</label>
+      <input id="importFile" type="file" accept="application/json" style="display:none">
+      <button class="btn" id="settingsBtn">Settings</button>
+    </div>
+    <p class="sub" id="streakInfo">Streak: 0 days · Last 7d avg: 0</p>
+    <h3 class="section-title">Core Habits</h3>
+    <div id="coreList" class="grid"></div>
+    <h3 class="section-title" style="margin-top:14px">Extra Points</h3>
+    <div id="extraList" class="grid"></div>
+  </section>
+
+  <section class="card">
+    <h3 class="section-title">This Week</h3>
+    <div id="chart" class="chart" aria-label="Weekly score chart"></div>
+    <div class="row" style="margin-top:12px">
+      <div class="pill">Good ≥ 9</div>
+      <div class="pill">Strong ≥ 12</div>
+      <div class="pill">God-tier = 15</div>
+      <div class="spacer"></div>
+      <button class="btn danger" id="resetDayBtn">Reset Day</button>
+      <button class="btn danger" id="resetAllBtn">Factory Reset</button>
+    </div>
+
+    <div style="margin-top:16px">
+      <h3 class="section-title">Today’s Detail</h3>
+      <table>
+        <thead><tr><th>Habit</th><th>Category</th><th>Points</th><th>Status</th></tr></thead>
+        <tbody id="detailTable"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<dialog id="settingsModal">
+  <div class="modal-header">
+    <h3 style="margin:0">Settings & Habits</h3>
+    <div class="spacer"></div>
+    <button id="closeSettings">Close</button>
+  </div>
+  <div class="modal-body">
+    <div class="row">
+      <div style="flex:1">
+        <label class="sub">Day starts at (hour 0–23)</label>
+        <input id="dayStart" type="number" min="0" max="23" step="1">
+      </div>
+      <div class="spacer"></div>
+      <button class="btn accent" id="addHabitBtn">+ Add Habit</button>
+    </div>
+    <p class="muted">Tap a row to edit. Toggle “Active” to hide habits without deleting them.</p>
+    <table>
+      <thead><tr><th>Emoji</th><th>Name</th><th>Points</th><th>Category</th><th>Active</th><th></th></tr></thead>
+      <tbody id="habitTable"></tbody>
+    </table>
+  </div>
+</dialog>
+
+<dialog id="habitModal">
+  <div class="modal-header">
+    <h3 style="margin:0" id="habitModalTitle">Edit Habit</h3>
+    <div class="spacer"></div>
+    <button id="closeHabit">Close</button>
+  </div>
+  <div class="modal-body">
+    <div class="grid">
+      <div>
+        <label class="sub">Emoji</label>
+        <input id="hEmoji" type="text" maxlength="4" placeholder="e.g. 🪥">
+      </div>
+      <div>
+        <label class="sub">Name</label>
+        <input id="hName" type="text" placeholder="Teeth care">
+      </div>
+      <div>
+        <label class="sub">Points</label>
+        <input id="hPoints" type="number" min="0" step="1">
+      </div>
+      <div>
+        <label class="sub">Category</label>
+        <input id="hCategory" type="text" list="catlist" placeholder="core or extra">
+        <datalist id="catlist">
+          <option value="core">
+          <option value="extra">
+        </datalist>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label class="pill"><input id="hActive" type="checkbox" checked> Active</label>
+      <div class="spacer"></div>
+      <button class="btn accent" id="saveHabit">Save</button>
+      <button class="btn danger" id="deleteHabit">Delete</button>
+    </div>
+  </div>
+</dialog>
+
+<footer class="footer">Made for you. Works offline. Export regularly as backup.</footer>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+const todayISO = () => {
+  const s = load().settings.dayStart || 0;
+  const now = new Date();
+  if (now.getHours() < s){ // treat hours before start as previous day
+    now.setDate(now.getDate()-1);
+  }
+  return now.toISOString().slice(0,10);
+};
+
+const DEFAULT = {
+  settings:{ dayStart:0, version:1 },
+  habits:[
+    // Core (9)
+    {id:"penis", emoji:"🧴", name:"Penis cream", points:1, category:"core", active:true},
+    {id:"teeth", emoji:"🪥", name:"Teeth care (brush + floss)", points:1, category:"core", active:true},
+    {id:"room", emoji:"🛏", name:"Bedroom tidy/maintain", points:1, category:"core", active:true},
+    {id:"milana-plan", emoji:"📅", name:"Milana date prep / keep in mind", points:1, category:"core", active:true},
+    {id:"assume", emoji:"🗣", name:"Pause before reacting (assume less)", points:1, category:"core", active:true},
+    {id:"duo", emoji:"🦉", name:"Duolingo (5 mins)", points:1, category:"core", active:true},
+    {id:"money", emoji:"💷", name:"Money tracking (log spends)", points:1, category:"core", active:true},
+    {id:"milana-chat", emoji:"💬", name:"Worry check-in with Milana", points:1, category:"core", active:true},
+    {id:"nails", emoji:"💅", name:"Notice nail-biting", points:1, category:"core", active:true},
+    // Extra (6)
+    {id:"workout", emoji:"💪", name:"Workout / exercise", points:1, category:"extra", active:true},
+    {id:"plan", emoji:"⏳", name:"Time plan before 10am", points:1, category:"extra", active:true},
+    {id:"social", emoji:"🤝", name:"Social reach-out", points:1, category:"extra", active:true},
+    {id:"roblox", emoji:"🎨", name:"Roblox build practice (30m)", points:1, category:"extra", active:true},
+    {id:"novape", emoji:"🚭", name:"No vaping all day", points:1, category:"extra", active:true},
+    {id:"noporn", emoji:"🚫", name:"No porn all day", points:1, category:"extra", active:true}
+  ],
+  entries:{} // date -> { done: {habitId: true/false} }
+};
+
+function load(){
+  try{
+    const raw = localStorage.getItem("dsg_data");
+    if(!raw) return JSON.parse(JSON.stringify(DEFAULT));
+    const obj = JSON.parse(raw);
+    // migrate defaults if missing
+    if(!obj.settings) obj.settings = {dayStart:0, version:1};
+    if(!obj.habits) obj.habits = DEFAULT.habits;
+    if(!obj.entries) obj.entries = {};
+    return obj;
+  }catch(e){
+    return JSON.parse(JSON.stringify(DEFAULT));
+  }
+}
+function save(data){
+  localStorage.setItem("dsg_data", JSON.stringify(data));
+}
+
+function render(){
+  const data = load();
+  const date = $("#datePicker").value || todayISO();
+  const entry = data.entries[date] || {done:{}};
+  const core = data.habits.filter(h=>h.category==="core" && h.active);
+  const extra = data.habits.filter(h=>h.category==="extra" && h.active);
+  const renderList = (list, el)=>{
+    el.innerHTML = "";
+    list.forEach(h=>{
+      const done = !!entry.done[h.id];
+      const div = document.createElement("div");
+      div.className = "habit";
+      div.innerHTML = `
+        <div class="emoji">${h.emoji}</div>
+        <div class="name">${h.name}</div>
+        <span class="tag">+${h.points}</span>
+        <div class="spacer"></div>
+        <button class="btn ${done?'ok':''}" data-toggle="${h.id}">${done?'Done':'Mark'}</button>
+      `;
+      el.appendChild(div);
+    });
+  };
+  renderList(core, $("#coreList"));
+  renderList(extra, $("#extraList"));
+
+  // detail table
+  const all = [...core, ...extra];
+  const tbody = $("#detailTable");
+  tbody.innerHTML = "";
+  let total=0, max=0;
+  all.forEach(h=>{
+    const done = !!entry.done[h.id];
+    if(done) total += h.points;
+    max += h.points;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${h.emoji} ${h.name}</td><td>${h.category}</td><td>${h.points}</td><td>${done?'✅':'—'}</td>`;
+    tbody.appendChild(tr);
+  });
+  // compute score with inactive habits excluded from max
+  $("#scoreToday").textContent = `${total} / ${max}`;
+
+  // streak + last 7 avg
+  const {streak, avg} = computeStats(data);
+  $("#streakInfo").textContent = `Streak: ${streak} days · Last 7d avg: ${avg.toFixed(1)}`;
+
+  // weekly chart
+  renderChart(data);
+}
+
+function computeStats(data){
+  // streak counts consecutive days with any core completion >= 1
+  let streak=0;
+  const today = new Date($("#datePicker").value || todayISO());
+  for(let i=0;i<365;i++){
+    const d = new Date(today); d.setDate(today.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    const entry = data.entries[key];
+    if(!entry) break;
+    const coreIds = data.habits.filter(h=>h.category==='core').map(h=>h.id);
+    const anyCore = coreIds.some(id=>entry.done && entry.done[id]);
+    if(anyCore) streak++; else break;
+  }
+  // last 7d avg total
+  let sum=0, count=0;
+  for(let i=0;i<7;i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    const entry = data.entries[key];
+    if(entry){
+      const t = Object.entries(entry.done||{}).reduce((acc,[id,done])=>{
+        if(!done) return acc;
+        const h = data.habits.find(x=>x.id===id);
+        return acc + (h?h.points:0);
+      },0);
+      sum += t; count++;
+    }
+  }
+  return {streak, avg: count? (sum/count):0};
+}
+
+function renderChart(data){
+  const el = $("#chart");
+  el.innerHTML = "";
+  const days = [...Array(7)].map((_,i)=>{
+    const d = new Date(); d.setDate(d.getDate()- (6-i));
+    const key = d.toISOString().slice(0,10);
+    const entry = data.entries[key];
+    const total = entry ? Object.entries(entry.done||{}).reduce((acc,[id,done])=>{
+      if(!done) return acc;
+      const h = data.habits.find(x=>x.id===id);
+      return acc + (h?h.points:0);
+    },0) : 0;
+    // compute max for that day based on active habits
+    const max = data.habits.filter(h=>h.active).reduce((a,b)=>a+b.points,0);
+    return {key, label:d.toLocaleDateString(undefined,{weekday:'short'}), total, max};
+  });
+  days.forEach(d=>{
+    const wrap = document.createElement("div");
+    wrap.style.flex="1";
+    const bar = document.createElement("div");
+    bar.className="bar";
+    const height = d.max? Math.round((d.total/d.max)*100):0;
+    bar.style.height = Math.max(6,height) + "px";
+    wrap.appendChild(bar);
+    const cap = document.createElement("div");
+    cap.className="bar-label";
+    cap.textContent = d.label;
+    wrap.appendChild(cap);
+    el.appendChild(wrap);
+  });
+}
+
+function toggleHabit(id){
+  const data = load();
+  const date = $("#datePicker").value || todayISO();
+  data.entries[date] = data.entries[date] || {done:{}};
+  data.entries[date].done[id] = !data.entries[date].done[id];
+  save(data);
+  render();
+}
+
+function setup(){
+  // date picker default to today in user's locale
+  $("#datePicker").value = todayISO();
+  $("#todayBtn").addEventListener("click", ()=>{
+    $("#datePicker").value = todayISO(); render();
+  });
+  $("#datePicker").addEventListener("change", render);
+
+  // mark buttons
+  document.body.addEventListener("click", e=>{
+    const id = e.target && e.target.getAttribute("data-toggle");
+    if(id){ toggleHabit(id); }
+  });
+
+  // export/import
+  $("#exportBtn").addEventListener("click", ()=>{
+    const blob = new Blob([localStorage.getItem("dsg_data") || JSON.stringify(DEFAULT)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "daily-score-game-backup.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $("#importFile").addEventListener("change", e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const obj = JSON.parse(reader.result);
+        localStorage.setItem("dsg_data", JSON.stringify(obj));
+        render();
+        alert("Import complete.");
+      }catch(err){ alert("Import failed: "+err.message); }
+    };
+    reader.readAsText(f);
+  });
+
+  // settings
+  const settingsModal = $("#settingsModal");
+  $("#settingsBtn").addEventListener("click", ()=>{
+    const data = load();
+    $("#dayStart").value = data.settings.dayStart ?? 0;
+    refreshHabitTable();
+    settingsModal.showModal();
+  });
+  $("#closeSettings").addEventListener("click", ()=>settingsModal.close());
+  $("#addHabitBtn").addEventListener("click", ()=> openHabitEditor());
+  $("#dayStart").addEventListener("change", e=>{
+    const data = load();
+    data.settings.dayStart = Math.min(23, Math.max(0, parseInt(e.target.value||0)));
+    save(data); render();
+  });
+
+  $("#resetAllBtn").addEventListener("click", ()=>{
+    if(confirm("Factory reset? This clears all data.")){
+      localStorage.removeItem("dsg_data");
+      render();
+    }
+  });
+  $("#resetDayBtn").addEventListener("click", ()=>{
+    const data = load();
+    const date = $("#datePicker").value || todayISO();
+    delete data.entries[date];
+    save(data); render();
+  });
+
+  // habit modal buttons
+  $("#closeHabit").addEventListener("click", ()=> $("#habitModal").close());
+  $("#saveHabit").addEventListener("click", saveHabitFromEditor);
+  $("#deleteHabit").addEventListener("click", deleteHabitFromEditor);
+
+  // service worker
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("sw.js");
+  }
+
+  render();
+}
+
+function refreshHabitTable(){
+  const data = load();
+  const tbody = $("#habitTable");
+  tbody.innerHTML = "";
+  data.habits.forEach(h=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${h.emoji}</td>
+      <td>${h.name}</td>
+      <td>${h.points}</td>
+      <td>${h.category}</td>
+      <td><input type="checkbox" ${h.active?"checked":""} data-active="${h.id}"></td>
+      <td><button class="btn" data-edit="${h.id}">Edit</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.addEventListener("click", e=>{
+    const id = e.target.getAttribute("data-edit");
+    if(id){ openHabitEditor(id); }
+  });
+  tbody.addEventListener("change", e=>{
+    const id = e.target.getAttribute("data-active");
+    if(id){
+      const data = load();
+      const h = data.habits.find(x=>x.id===id);
+      if(h){ h.active = e.target.checked; save(data); render(); }
+    }
+  });
+}
+
+let editingId = null;
+function openHabitEditor(id){
+  const data = load();
+  const modal = $("#habitModal");
+  const h = id ? data.habits.find(x=>x.id===id) : {id:"",emoji:"",name:"",points:1,category:"core",active:true};
+  editingId = id || null;
+  $("#habitModalTitle").textContent = id ? "Edit Habit" : "Add Habit";
+  $("#hEmoji").value = h.emoji || "";
+  $("#hName").value = h.name || "";
+  $("#hPoints").value = h.points || 1;
+  $("#hCategory").value = h.category || "core";
+  $("#hActive").checked = h.active !== false;
+  modal.showModal();
+}
+
+function saveHabitFromEditor(){
+  const emoji = $("#hEmoji").value.trim() || "✅";
+  const name = $("#hName").value.trim() || "New Habit";
+  const points = Math.max(0, parseInt($("#hPoints").value || "1"));
+  let category = ($("#hCategory").value || "core").toLowerCase();
+  if(category !== "core" && category !== "extra") category = "core";
+  const active = $("#hActive").checked;
+
+  const data = load();
+  if(editingId){
+    const h = data.habits.find(x=>x.id===editingId);
+    if(h){
+      h.emoji = emoji; h.name = name; h.points = points; h.category = category; h.active = active;
+    }
+  }else{
+    // generate id
+    const id = (name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0,24) || ("habit-"+Date.now()));
+    data.habits.push({id, emoji, name, points, category, active});
+  }
+  save(data);
+  $("#habitModal").close();
+  refreshHabitTable(); render();
+}
+
+function deleteHabitFromEditor(){
+  if(!editingId){ $("#habitModal").close(); return; }
+  if(confirm("Delete this habit?")){
+    const data = load();
+    data.habits = data.habits.filter(x=>x.id!==editingId);
+    // also remove completions
+    Object.keys(data.entries).forEach(date=>{
+      if(data.entries[date].done) delete data.entries[date].done[editingId];
+    });
+    save(data);
+    $("#habitModal").close();
+    refreshHabitTable(); render();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", setup);
+</script>
+</body>
+</html>
