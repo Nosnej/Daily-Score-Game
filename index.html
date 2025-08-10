@@ -56,10 +56,10 @@
     }
     .pill{display:inline-flex;align-items:center;gap:8px;background:#141824;border:1px solid rgba(255,255,255,.08);
       padding:8px 12px;border-radius:999px;font-size:13px;color:#cfd5e6}
-    .section-title{margin:0 0 8px 0; font-size:14px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase}
+    .section-title{margin:0 0 8px 0; font-size:14px; color:#9aa3b2; letter-spacing:.08em; text-transform:uppercase}
     .footer{opacity:.7; font-size:12px; text-align:center; padding:24px}
     input[type="date"]{background:#1e2230;border:1px solid rgba(255,255,255,.1);color:var(--text);padding:8px;border-radius:10px}
-    input[type="text"], input[type="number"]{
+    input[type="text"], input[type="password"], input[type="number"]{
       width:100%; background:#0e1119; border:1px solid rgba(255,255,255,.1); color:#fff; padding:10px 12px; border-radius:10px;
     }
     dialog{border:none; border-radius:16px; padding:0; background:#0e1016; color:var(--text); width:min(720px,92vw)}
@@ -113,6 +113,8 @@
     }
     .trophy .big{font-size:28px}
     .trophy .name{font-size:12px;color:#c7ccda;margin-top:4px}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:#12182a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;font-size:14px;display:none}
+    .toast.show{display:block}
   </style>
 </head>
 <body>
@@ -231,50 +233,49 @@
       <thead><tr><th>Emoji</th><th>Name</th><th>Points</th><th>Category</th><th>Active</th><th></th></tr></thead>
       <tbody id="habitTable"></tbody>
     </table>
+
+    <div style="margin-top:16px">
+      <div class="section-title">Sync (optional)</div>
+      <div class="grid">
+        <div><label class="sub">Gist ID</label><input id="gistId" type="text" placeholder="xxxxxxxxxxxxxxxxxxxx"></div>
+        <div><label class="sub">Token</label><input id="gistToken" type="password" placeholder="ghp_..."></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="saveSyncBtn">Save Sync</button>
+        <button class="btn" id="pullBtn">Pull</button>
+        <button class="btn" id="pushBtn">Push</button>
+        <div class="spacer"></div>
+        <div class="sub muted">Sync uses your private GitHub Gist. Revoke token anytime.</div>
+      </div>
+    </div>
   </div>
 </dialog>
 
-<dialog id="habitModal">
-  <div class="modal-header">
-    <h3 style="margin:0" id="habitModalTitle">Edit Habit</h3>
-    <div class="spacer"></div>
-    <button id="closeHabit">Close</button>
-  </div>
-  <div class="modal-body">
-    <div class="grid">
-      <div>
-        <label class="sub">Emoji</label>
-        <input id="hEmoji" type="text" maxlength="4" placeholder="e.g. 🪥">
-      </div>
-      <div>
-        <label class="sub">Name</label>
-        <input id="hName" type="text" placeholder="Teeth care">
-      </div>
-      <div>
-        <label class="sub">Points</label>
-        <input id="hPoints" type="number" min="0" step="1">
-      </div>
-      <div>
-        <label class="sub">Category</label>
-        <input id="hCategory" type="text" list="catlist" placeholder="core or extra">
-        <datalist id="catlist">
-          <option value="core">
-          <option value="extra">
-        </datalist>
-      </div>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <label class="pill"><input id="hActive" type="checkbox" checked> Active</label>
-      <div class="spacer"></div>
-      <button class="btn accent" id="saveHabit">Save</button>
-      <button class="btn danger" id="deleteHabit">Delete</button>
-    </div>
-  </div>
-</dialog>
+<div class="toast" id="toast">Update available — refreshing…</div>
 
 <footer class="footer">Made for you. Works offline. Export regularly as backup.</footer>
 
 <script>
+const APP_VERSION = "phase1.1-rebuild";
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js?v="+APP_VERSION).then(reg=>{
+    if (reg.waiting) { showToastAndReload(); }
+    reg.addEventListener("updatefound", ()=>{
+      const sw = reg.installing;
+      if (sw) sw.addEventListener("statechange", ()=>{
+        if (sw.state === "installed" && navigator.serviceWorker.controller) {
+          showToastAndReload();
+        }
+      });
+    });
+  });
+}
+function showToastAndReload(){
+  const t = document.getElementById("toast");
+  t.classList.add("show");
+  setTimeout(()=>location.reload(), 900);
+}
+
 const $ = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
 
@@ -286,9 +287,8 @@ const todayISO = () => {
 };
 
 const DEFAULT = {
-  settings:{ dayStart:0, version:3, enemyRerolls:{}, trophies:[], avatar:{base:"🧍", titles:[]} },
+  settings:{ dayStart:0, version:4, enemyRerolls:{}, trophies:[], avatar:{base:"🧍", titles:[]} },
   habits:[
-    // Core (9)
     {id:"penis", emoji:"🧴", name:"Penis cream", points:1, category:"core", active:true},
     {id:"teeth", emoji:"🪥", name:"Teeth care (brush + floss)", points:1, category:"core", active:true},
     {id:"room", emoji:"🛏", name:"Bedroom tidy/maintain", points:1, category:"core", active:true},
@@ -298,7 +298,6 @@ const DEFAULT = {
     {id:"money", emoji:"💷", name:"Money tracking (log spends)", points:1, category:"core", active:true},
     {id:"milana-chat", emoji:"💬", name:"Worry check-in with Milana", points:1, category:"core", active:true},
     {id:"nails", emoji:"💅", name:"Notice nail-biting", points:1, category:"core", active:true},
-    // Extra (6)
     {id:"workout", emoji:"💪", name:"Workout / exercise", points:1, category:"extra", active:true},
     {id:"plan", emoji:"⏳", name:"Time plan before 10am", points:1, category:"extra", active:true},
     {id:"social", emoji:"🤝", name:"Social reach-out", points:1, category:"extra", active:true},
@@ -309,32 +308,64 @@ const DEFAULT = {
   entries:{}
 };
 
+// SYNC
+function getSyncCfg() {
+  try{ return JSON.parse(localStorage.getItem("dsg_sync") || "{}"); }catch(e){ return {}; }
+}
+function setSyncCfg(gistId, token) {
+  localStorage.setItem("dsg_sync", JSON.stringify({ gistId, token }));
+}
+async function syncPush() {
+  const { gistId, token } = getSyncCfg();
+  if (!gistId || !token) throw new Error("Sync not configured");
+  const body = { files: { "daily-score-game.json": { content: localStorage.getItem("dsg_data") || "{}" } } };
+  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+    method: "PATCH",
+    headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error("Push failed: " + res.status);
+  return true;
+}
+async function syncPull() {
+  const { gistId, token } = getSyncCfg();
+  if (!gistId) throw new Error("Sync not configured");
+  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+    headers: token ? { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json" } : { "Accept": "application/vnd.github+json" }
+  });
+  if (!res.ok) throw new Error("Pull failed: " + res.status);
+  const json = await res.json();
+  const file = json.files && json.files["daily-score-game.json"];
+  if (!file || !file.content) throw new Error("No content in gist");
+  localStorage.setItem("dsg_data", file.content);
+  return true;
+}
+
+let pushTimer=null;
+function schedulePush(){ clearTimeout(pushTimer); pushTimer = setTimeout(()=>syncPush().catch(()=>{}), 2500); }
+
+// DATA
 function load(){
   try{
     const raw = localStorage.getItem("dsg_data");
     if(!raw) return JSON.parse(JSON.stringify(DEFAULT));
     const obj = JSON.parse(raw);
-
-    // migrations
     if(!obj.settings) obj.settings = {dayStart:0, version:1};
     if(!obj.habits) obj.habits = DEFAULT.habits;
     if(!obj.entries) obj.entries = {};
-
-    if(obj.settings.version < 2){
-      obj.settings.enemyRerolls = {};
-      obj.settings.version = 2;
-    }
-    if(obj.settings.version < 3){
-      obj.settings.trophies = [];
-      obj.settings.avatar = {base:"🧍", titles:[]};
-      obj.settings.version = 3;
-    }
+    if(obj.settings.version < 2){ obj.settings.enemyRerolls = {}; obj.settings.version = 2; }
+    if(obj.settings.version < 3){ obj.settings.trophies = []; obj.settings.avatar = {base:"🧍", titles:[]}; obj.settings.version = 3; }
+    if(obj.settings.version < 4){ obj.settings.version = 4; }
     return obj;
   }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
 }
-function save(data){ localStorage.setItem("dsg_data", JSON.stringify(data)); }
+function save(data){
+  localStorage.setItem("dsg_data", JSON.stringify(data));
+  const cfg = getSyncCfg();
+  if (cfg && cfg.gistId && cfg.token) schedulePush();
+}
 
-// --- Utility ---
+// Utils
 function hashStr(str){
   let h = 2166136261;
   for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
@@ -345,7 +376,6 @@ function pickDailyEnemyEmoji(date, habits, rerollCount=0){
   if(pool.length===0){ return {emoji:"👾", name:"Glitchling", rare:false}; }
   const seed = hashStr(date) + rerollCount*1337;
   const idx = seed % pool.length;
-  // Rare boss: 1-in-20 chance (cosmetic)
   const rare = (seed % 20) === 0;
   const pick = pool[idx];
   const named = nameEnemy(pick.emoji, pick.name, rare, seed);
@@ -357,16 +387,11 @@ function nameEnemy(emoji, baseName, rare, seed){
   const p = prefixes[seed % prefixes.length];
   const s = suffixes[(seed>>4) % suffixes.length];
   const star = rare ? "★ " : "";
-  // e.g., "★ Sir 🪥 Fang"
   return `${star}${p} ${emoji} ${s}`;
 }
+function todayEntry(data, date){ data.entries[date] = data.entries[date] || {done:{}, meta:{}}; return data.entries[date]; }
 
-function todayEntry(data, date){
-  data.entries[date] = data.entries[date] || {done:{}, meta:{}};
-  return data.entries[date];
-}
-
-// --- Rendering ---
+// Render
 function render(){
   const data = load();
   const date = $("#datePicker").value || todayISO();
@@ -374,20 +399,18 @@ function render(){
   const core = data.habits.filter(h=>h.category==="core" && h.active);
   const extra = data.habits.filter(h=>h.category==="extra" && h.active);
 
-  // Avatar & streak
   const {streak, avg} = computeStats(data);
   $("#streakInfo").textContent = `Streak: ${streak} days · Last 7d avg: ${avg.toFixed(1)}`;
   $("#streakPill").textContent = `Streak ${streak}`;
   renderAvatar(streak);
 
-  // Battle
   const rerolls = data.settings.enemyRerolls[date] || 0;
   const foe = pickDailyEnemyEmoji(date, data.habits, rerolls);
   $("#enemyFace").textContent = foe.emoji;
   $("#enemyName").textContent = `Today’s foe: ${foe.name}`;
   $("#rareTag").style.display = foe.rare ? "inline-flex" : "none";
 
-  const maxHP = core.reduce((a,b)=>a+b.points, 0); // core points total (usually 9)
+  const maxHP = core.reduce((a,b)=>a+b.points, 0);
   const damage = core.reduce((acc,h)=> acc + ((entry.done && entry.done[h.id]) ? h.points : 0), 0);
   const hpLeft = Math.max(0, maxHP - damage);
   const pct = maxHP ? Math.round((hpLeft/maxHP)*100) : 0;
@@ -396,18 +419,15 @@ function render(){
   $("#victoryTag").classList.toggle("show", hpLeft===0);
   $("#enemyFace").classList.toggle("hit", false);
 
-  // mark victory in trophies if not already saved
   if(hpLeft===0 && !entry.meta.trophySaved){
-    saveTrophy(data, date, foe, damage + extraDamage(data, entry));
+    saveTrophy(data, date, foe, damage);
     entry.meta.trophySaved = true;
     save(data);
   }
 
-  // Habit lists
   renderList(core, $("#coreList"), entry);
   renderList(extra, $("#extraList"), entry);
 
-  // detail & score
   const all = [...core, ...extra];
   const tbody = $("#detailTable");
   tbody.innerHTML = "";
@@ -424,15 +444,9 @@ function render(){
 
   renderChart(data);
 }
-
-function extraDamage(data, entry){
-  // room for future critical hits; for now 0
-  return 0;
-}
-
+function extraDamage(){ return 0; }
 function renderAvatar(streak){
   const me = $("#meFace");
-  // basic base avatar
   me.textContent = "🧍";
   const gear = [];
   if(streak >= 3)  gear.push("🗡 Wooden Sword");
@@ -440,7 +454,6 @@ function renderAvatar(streak){
   if(streak >= 14) gear.push("🪖 Helmet");
   if(streak >= 21) gear.push("🧥 Cloak");
   if(streak >= 30) gear.push("👑 Crown");
-
   const gearRow = $("#gearRow");
   gearRow.innerHTML = "";
   gear.forEach(g=>{
@@ -449,8 +462,6 @@ function renderAvatar(streak){
     el.textContent = g;
     gearRow.appendChild(el);
   });
-
-  // title line
   const title = (streak>=30) ? "Champion of Consistency" :
                 (streak>=21) ? "Relentless" :
                 (streak>=14) ? "Disciplined" :
@@ -459,7 +470,6 @@ function renderAvatar(streak){
                                "New Adventurer";
   $("#titleRow").textContent = title;
 }
-
 function renderList(list, el, entry){
   el.innerHTML = "";
   list.forEach(h=>{
@@ -476,16 +486,13 @@ function renderList(list, el, entry){
     el.appendChild(div);
   });
 }
-
 function saveTrophy(data, date, foe, totalScore){
   data.settings.trophies = data.settings.trophies || [];
   const exists = data.settings.trophies.some(t=>t.date===date);
   if(exists) return;
-  data.settings.trophies.push({
-    date, enemyEmoji: foe.emoji, enemyName: foe.name, rare: !!fo.rare, score: totalScore
-  });
+  data.settings.trophies.push({ date, enemyEmoji: foe.emoji, enemyName: foe.name, rare: !!foe.rare, score: totalScore });
+  save(data);
 }
-
 function computeStats(data){
   let streak=0;
   const today = new Date($("#datePicker").value || todayISO());
@@ -500,7 +507,7 @@ function computeStats(data){
   }
   let sum=0, count=0;
   for(let i=0;i<7;i++){
-    const d = new Date(); d.setDate(d.getDate()-i);
+    const d = new Date(); d.setDate(d.getDate()- (6-i));
     const key = d.toISOString().slice(0,10);
     const entry = data.entries[key];
     if(entry){
@@ -514,10 +521,8 @@ function computeStats(data){
   }
   return {streak, avg: count? (sum/count):0};
 }
-
 function renderChart(data){
-  const el = $("#chart");
-  el.innerHTML = "";
+  const el = $("#chart"); el.innerHTML = "";
   const days = [...Array(7)].map((_,i)=>{
     const d = new Date(); d.setDate(d.getDate()- (6-i));
     const key = d.toISOString().slice(0,10);
@@ -531,21 +536,15 @@ function renderChart(data){
     return {key, label:d.toLocaleDateString(undefined,{weekday:'short'}), total, max};
   });
   days.forEach(d=>{
-    const wrap = document.createElement("div");
-    wrap.style.flex="1";
-    const bar = document.createElement("div");
-    bar.className="bar";
+    const wrap = document.createElement("div"); wrap.style.flex="1";
+    const bar = document.createElement("div"); bar.className="bar";
     const height = d.max? Math.round((d.total/d.max)*100):0;
     bar.style.height = Math.max(6,height) + "px";
     wrap.appendChild(bar);
-    const cap = document.createElement("div");
-    cap.className="bar-label";
-    cap.textContent = d.label;
-    wrap.appendChild(cap);
-    el.appendChild(wrap);
+    const cap = document.createElement("div"); cap.className="bar-label"; cap.textContent = d.label;
+    wrap.appendChild(cap); el.appendChild(wrap);
   });
 }
-
 function toggleHabit(id, category){
   const data = load();
   const date = $("#datePicker").value || todayISO();
@@ -556,10 +555,8 @@ function toggleHabit(id, category){
   if(!before && category === "core"){ hitEnemy(); }
   render();
 }
-
 function hitEnemy(){
-  const face = $("#enemyFace");
-  face.classList.add("hit");
+  const face = $("#enemyFace"); face.classList.add("hit");
   const box = $("#battleBox");
   for(let i=0;i<12;i++){
     const s = document.createElement("div");
@@ -575,7 +572,6 @@ function hitEnemy(){
   }
   setTimeout(()=> face.classList.remove("hit"), 120);
 }
-
 function openBossLog(){
   const data = load();
   const grid = $("#trophyGrid");
@@ -600,7 +596,12 @@ function openBossLog(){
   $("#logMeta").textContent = `${trophies.length} total victories`;
   $("#logModal").showModal();
 }
-
+async function tryInitialPull(){
+  const cfg = getSyncCfg();
+  if(cfg && cfg.gistId){
+    try { await syncPull(); render(); } catch(e){ /* silent */ }
+  }
+}
 function setup(){
   $("#datePicker").value = todayISO();
   $("#todayBtn").addEventListener("click", ()=>{ $("#datePicker").value = todayISO(); render(); });
@@ -616,7 +617,6 @@ function setup(){
     }
   });
 
-  // export/import
   $("#exportBtn").addEventListener("click", ()=>{
     const blob = new Blob([localStorage.getItem("dsg_data") || JSON.stringify(DEFAULT)], {type:"application/json"});
     const a = document.createElement("a");
@@ -639,12 +639,14 @@ function setup(){
     reader.readAsText(f);
   });
 
-  // settings
   const settingsModal = $("#settingsModal");
   $("#settingsBtn").addEventListener("click", ()=>{
     const data = load();
     $("#dayStart").value = data.settings.dayStart ?? 0;
     refreshHabitTable();
+    const cfg = getSyncCfg();
+    $("#gistId").value = cfg.gistId || "";
+    $("#gistToken").value = cfg.token || "";
     settingsModal.showModal();
   });
   $("#closeSettings").addEventListener("click", ()=>settingsModal.close());
@@ -653,6 +655,16 @@ function setup(){
     const data = load();
     data.settings.dayStart = Math.min(23, Math.max(0, parseInt(e.target.value||0)));
     save(data); render();
+  });
+  $("#saveSyncBtn").addEventListener("click", ()=>{
+    setSyncCfg($("#gistId").value.trim(), $("#gistToken").value.trim());
+    alert("Sync settings saved.");
+  });
+  $("#pullBtn").addEventListener("click", async ()=>{
+    try{ await syncPull(); render(); alert("Pulled latest from Gist."); }catch(e){ alert("Pull failed: "+e.message); }
+  });
+  $("#pushBtn").addEventListener("click", async ()=>{
+    try{ await syncPush(); alert("Pushed to Gist!"); }catch(e){ alert("Push failed: "+e.message); }
   });
 
   $("#resetAllBtn").addEventListener("click", ()=>{
@@ -668,7 +680,6 @@ function setup(){
     save(data); render();
   });
 
-  // reroll enemy
   $("#rerollEnemy").addEventListener("click", ()=>{
     const data = load();
     const date = $("#datePicker").value || todayISO();
@@ -676,16 +687,13 @@ function setup(){
     save(data); render();
   });
 
-  // PWA
-  if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js"); }
-
   render();
+  tryInitialPull();
 }
 
 function refreshHabitTable(){
   const data = load();
-  const tbody = $("#habitTable");
-  tbody.innerHTML = "";
+  const tbody = $("#habitTable"); tbody.innerHTML = "";
   data.habits.forEach(h=>{
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -726,7 +734,6 @@ function openHabitEditor(id){
   $("#hActive").checked = h.active !== false;
   $("#habitModal").showModal();
 }
-
 function saveHabitFromEditor(){
   const emoji = $("#hEmoji").value.trim() || "✅";
   const name = $("#hName").value.trim() || "New Habit";
@@ -734,7 +741,6 @@ function saveHabitFromEditor(){
   let category = ($("#hCategory").value || "core").toLowerCase();
   if(category !== "core" && category !== "extra") category = "core";
   const active = $("#hActive").checked;
-
   const data = load();
   if(editingId){
     const h = data.habits.find(x=>x.id===editingId);
@@ -747,7 +753,6 @@ function saveHabitFromEditor(){
   $("#habitModal").close();
   refreshHabitTable(); render();
 }
-
 function deleteHabitFromEditor(){
   if(!editingId){ $("#habitModal").close(); return; }
   if(confirm("Delete this habit?")){
@@ -761,7 +766,6 @@ function deleteHabitFromEditor(){
     refreshHabitTable(); render();
   }
 }
-
 document.addEventListener("DOMContentLoaded", setup);
 </script>
 </body>
